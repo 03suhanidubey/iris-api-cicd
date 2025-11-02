@@ -9,43 +9,40 @@ env:
   LOCATION: us-central1        # Artifact Registry location
   REPOSITORY: iris-api-cicd
   IMAGE_NAME: iris-api
+  CLUSTER_NAME: gke-iris-cluster-ga6
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write   # required for Workload Identity Federation
-      packages: write
     steps:
-    - name: Checkout
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Authenticate to GCP
       uses: google-github-actions/auth@v1
       with:
-        workload_identity_provider: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID"
-        service_account: "github-cd@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
 
     - name: Configure docker for Artifact Registry
-      run: |
-        gcloud auth configure-docker ${LOCATION}-docker.pkg.dev --quiet
+      run: gcloud auth configure-docker ${{ env.LOCATION }}-docker.pkg.dev --quiet
 
-    - name: Build and push Docker image
+    - name: Build and push Docker image to artifact registry
       uses: docker/build-push-action@v4
       with:
         push: true
-        tags: ${LOCATION}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        tags: |
+          ${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          ${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
         file: ./Dockerfile
 
     - name: Get GKE credentials
       uses: google-github-actions/get-gke-credentials@v1
       with:
-        cluster_name: iris-cluster
+        cluster_name: gke-iris-cluster-ga6
         location: us-central1
         project_id: ${{ env.PROJECT_ID }}
 
     - name: Set image in k8s deployment
       run: |
-        kubectl set image deployment/iris-api iris-container=${LOCATION}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --record
+        kubectl set image deployment/iris-api iris-container=${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --record
         kubectl rollout status deployment/iris-api --timeout=120s
