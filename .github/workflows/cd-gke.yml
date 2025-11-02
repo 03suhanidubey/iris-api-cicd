@@ -44,5 +44,5 @@ jobs:
 
     - name: Set image in k8s deployment
       run: |
-        kubectl set image deployment/iris-api iris-container=${{ env.LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --record
-        kubectl rollout status deployment/iris-api --timeout=120s
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
