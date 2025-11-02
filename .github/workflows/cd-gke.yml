@@ -44,5 +44,4 @@ jobs:
 
     - name: Set image in k8s deployment
       run: |
-        kubectl apply -f k8s/deployment.yaml
-        kubectl apply -f k8s/service.yaml
+        kubectl set image deployment/iris-api iris-container=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/iris-api-cicd/iris-api:$GITHUB_SHA
