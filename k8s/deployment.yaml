@@ -19,15 +19,3 @@ spec:
           image: us-central1-docker.pkg.dev//iris-api-cicd/iris-api:latest
           ports:
             - containerPort: 8100
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8100
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8100
-            initialDelaySeconds: 15
-            periodSeconds: 20
